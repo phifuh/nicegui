@@ -221,7 +221,7 @@ from .elements.radio import Radio as radio
 from .elements.range import Range as range  # pylint: disable=redefined-builtin
 from .elements.rating import Rating as rating
 from .elements.restructured_text import ReStructuredText as restructured_text
-from .elements.rich_text_editor import Tiptap as tiptap
+from .elements.tiptap import Tiptap as tiptap
 from .elements.row import Row as row
 from .elements.scene import Scene as scene
 from .elements.scene import SceneView as scene_view
