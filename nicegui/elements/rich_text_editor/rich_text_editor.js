@@ -1,21 +1,148 @@
 import * as RTE from 'nicegui-rich-text-editor';
+import { loadResource } from '../../static/utils/resources.js';
+
+// Button definitions — keyed by the IDs the Python API exposes.
+// Regular buttons: active is spread args for editor.isActive(); null = no active state.
+//                  cmdAttrs is the extra argument for commands that need one (e.g. heading level).
+// Dropdown buttons: type='dropdown', items is an array of {label, cmd, cmdAttrs?, active}.
+//                  The button label reflects the currently active item.
+const BUTTONS = {
+  bold:         { icon: 'format_bold',             tooltip: 'Bold',            cmd: 'toggleBold',        active: ['bold'] },
+  italic:       { icon: 'format_italic',            tooltip: 'Italic',          cmd: 'toggleItalic',      active: ['italic'] },
+  underline:    { icon: 'format_underline',         tooltip: 'Underline',       cmd: 'toggleUnderline',   active: ['underline'] },
+  strike:       { icon: 'strikethrough_s',          tooltip: 'Strikethrough',   cmd: 'toggleStrike',      active: ['strike'] },
+  code:         { icon: 'code',                     tooltip: 'Inline code',     cmd: 'toggleCode',        active: ['code'] },
+  // Individual heading buttons (available for custom toolbars).
+  h1:           { label: 'H1',                      tooltip: 'Heading 1',       cmd: 'toggleHeading',     cmdAttrs: {level: 1}, active: ['heading', {level: 1}] },
+  h2:           { label: 'H2',                      tooltip: 'Heading 2',       cmd: 'toggleHeading',     cmdAttrs: {level: 2}, active: ['heading', {level: 2}] },
+  h3:           { label: 'H3',                      tooltip: 'Heading 3',       cmd: 'toggleHeading',     cmdAttrs: {level: 3}, active: ['heading', {level: 3}] },
+  // Heading dropdown — shows the active level as its label.
+  heading: {
+    type: 'dropdown',
+    tooltip: 'Heading',
+    items: [
+      { label: 'Normal',    cmd: 'setParagraph',  active: null },
+      { label: 'Heading 1', cmd: 'toggleHeading', cmdAttrs: {level: 1}, active: ['heading', {level: 1}] },
+      { label: 'Heading 2', cmd: 'toggleHeading', cmdAttrs: {level: 2}, active: ['heading', {level: 2}] },
+      { label: 'Heading 3', cmd: 'toggleHeading', cmdAttrs: {level: 3}, active: ['heading', {level: 3}] },
+    ],
+  },
+  bullet_list:  { icon: 'format_list_bulleted',     tooltip: 'Bullet list',     cmd: 'toggleBulletList',  active: ['bulletList'] },
+  ordered_list: { icon: 'format_list_numbered',     tooltip: 'Ordered list',    cmd: 'toggleOrderedList', active: ['orderedList'] },
+  blockquote:   { icon: 'format_quote',             tooltip: 'Blockquote',      cmd: 'toggleBlockquote',  active: ['blockquote'] },
+  code_block:   { icon: 'integration_instructions', tooltip: 'Code block',      cmd: 'toggleCodeBlock',   active: ['codeBlock'] },
+  table:        { icon: 'table_chart',              tooltip: 'Insert table',    cmd: 'insertTable',       cmdAttrs: {rows: 3, cols: 3, withHeaderRow: true}, active: null },
+  undo:         { icon: 'undo',                     tooltip: 'Undo',            cmd: 'undo',              active: null },
+  redo:         { icon: 'redo',                     tooltip: 'Redo',            cmd: 'redo',              active: null },
+  hr:           { icon: 'horizontal_rule',          tooltip: 'Horizontal rule', cmd: 'setHorizontalRule', active: null },
+};
+
+const DEFAULT_TOOLBAR = [
+  ['bold', 'italic', 'underline', 'strike', 'code'],
+  ['heading'],
+  ['bullet_list', 'ordered_list'],
+  ['blockquote', 'code_block'],
+  ['undo', 'redo'],
+];
 
 export default {
-  template: `<div></div>`,
+  template: `
+    <div style="display:flex;flex-direction:column;">
+      <div v-if="toolbarGroups.length"
+           class="row no-wrap items-center q-pa-xs nicegui-rte-toolbar">
+        <template v-for="(group, gi) in toolbarGroups" :key="gi">
+          <q-separator v-if="gi > 0" vertical class="q-mx-xs" />
+          <q-btn-group flat>
+            <template v-for="btnId in group" :key="btnId">
+              <q-btn-dropdown v-if="getBtn(btnId).type === 'dropdown'"
+                              dense flat no-icon-animation
+                              :label="getDropdownLabel(btnId)"
+                              @mousedown.prevent>
+                <q-list dense>
+                  <q-item v-for="item in getBtn(btnId).items" :key="item.label"
+                          clickable v-close-popup
+                          :active="isDropdownItemActive(item)"
+                          active-class="text-primary"
+                          @click="execDropdownItem(item)">
+                    <q-item-section>{{ item.label }}</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
+              <q-btn v-else
+                     dense flat
+                     :icon="getBtn(btnId).icon || undefined"
+                     :color="isActive(btnId) ? 'primary' : undefined"
+                     @mousedown.prevent @click="execBtn(btnId)">
+                {{ getBtn(btnId).label || '' }}
+                <q-tooltip>{{ getBtn(btnId).tooltip }}</q-tooltip>
+              </q-btn>
+            </template>
+          </q-btn-group>
+        </template>
+      </div>
+      <div v-if="isInTable" class="row no-wrap items-center q-pa-xs nicegui-rte-table-toolbar">
+        <q-icon name="table_chart" size="xs" class="q-mr-xs" style="opacity:0.4" />
+        <q-btn-group flat>
+          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addRowBefore')">
+            row ↑<q-tooltip>Add row above</q-tooltip>
+          </q-btn>
+          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addRowAfter')">
+            row ↓<q-tooltip>Add row below</q-tooltip>
+          </q-btn>
+          <q-btn dense flat no-caps size="sm" color="negative" @mousedown.prevent @click="execTableCmd('deleteRow')">
+            del row<q-tooltip>Delete row</q-tooltip>
+          </q-btn>
+        </q-btn-group>
+        <q-separator vertical class="q-mx-xs" />
+        <q-btn-group flat>
+          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addColumnBefore')">
+            col ←<q-tooltip>Add column left</q-tooltip>
+          </q-btn>
+          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addColumnAfter')">
+            col →<q-tooltip>Add column right</q-tooltip>
+          </q-btn>
+          <q-btn dense flat no-caps size="sm" color="negative" @mousedown.prevent @click="execTableCmd('deleteColumn')">
+            del col<q-tooltip>Delete column</q-tooltip>
+          </q-btn>
+        </q-btn-group>
+        <q-separator vertical class="q-mx-xs" />
+        <q-btn dense flat no-caps size="sm" color="negative" @mousedown.prevent @click="execTableCmd('deleteTable')">
+          del table<q-tooltip>Delete table</q-tooltip>
+        </q-btn>
+      </div>
+      <div ref="editorEl" style="flex:1;min-height:0;overflow-y:auto;"></div>
+    </div>
+  `,
   props: {
     value: String,
     docId: String,
     user: Object,
     disable: Boolean,
+    toolbar: [Boolean, Array],
+    resourcePath: String,
     id: String,
   },
   data() {
     return {
+      // Bump on every Tiptap transaction so toolbar active-state bindings re-evaluate.
+      editorUpdated: 0,
       // Allows methods called by the server before mount to await the editor.
       editorPromise: new Promise((resolve) => {
         this.resolveEditor = resolve;
       }),
     };
+  },
+  computed: {
+    // Resolve toolbar prop to a 2D array of button-ID groups (or [] when hidden).
+    toolbarGroups() {
+      if (!this.toolbar) return [];
+      return Array.isArray(this.toolbar) ? this.toolbar : DEFAULT_TOOLBAR;
+    },
+    // True when the cursor is inside a table — drives the table context toolbar.
+    isInTable() {
+      void this.editorUpdated;
+      return this.editor ? this.editor.isActive('table') : false;
+    },
   },
   watch: {
     disable(newVal) {
@@ -34,8 +161,58 @@ export default {
     getHTML() {
       return this.editor ? this.editor.getHTML() : '';
     },
+    // Look up a button definition by ID; returns {} for unknown IDs.
+    getBtn(id) {
+      return BUTTONS[id] || {};
+    },
+    // Returns whether the given button's format is active at the current selection.
+    // Accessing this.editorUpdated registers it as a reactive dependency so the
+    // toolbar re-renders after every Tiptap transaction.
+    isActive(id) {
+      void this.editorUpdated;
+      const btn = BUTTONS[id];
+      if (!btn || !btn.active || !this.editor) return false;
+      return this.editor.isActive(...btn.active);
+    },
+    // Execute the command for a toolbar button.
+    execBtn(id) {
+      const btn = BUTTONS[id];
+      if (!btn || !this.editor) return;
+      const chain = this.editor.chain().focus();
+      (btn.cmdAttrs ? chain[btn.cmd](btn.cmdAttrs) : chain[btn.cmd]()).run();
+    },
+    // Returns the label for a dropdown button reflecting the currently active item.
+    getDropdownLabel(id) {
+      void this.editorUpdated;
+      const btn = BUTTONS[id];
+      if (!btn || !btn.items) return '';
+      if (!this.editor) return btn.items[0]?.label || '';
+      const active = btn.items.find((item) => item.active && this.editor.isActive(...item.active));
+      return active ? active.label : btn.items[0].label;
+    },
+    // Returns true when the given dropdown item matches the current editor state.
+    isDropdownItemActive(item) {
+      void this.editorUpdated;
+      if (!item.active || !this.editor) return false;
+      return this.editor.isActive(...item.active);
+    },
+    // Execute a table structural command (addRowBefore, deleteColumn, etc.).
+    execTableCmd(cmd) {
+      if (!this.editor) return;
+      this.editor.chain().focus()[cmd]().run();
+    },
+    // Execute the command for a dropdown menu item.
+    execDropdownItem(item) {
+      if (!this.editor) return;
+      const chain = this.editor.chain().focus();
+      (item.cmdAttrs ? chain[item.cmd](item.cmdAttrs) : chain[item.cmd]()).run();
+    },
   },
   async mounted() {
+    this.$nextTick().then(() =>
+      loadResource(window.path_prefix + `${this.resourcePath}/rich_text_editor.css`),
+    );
+
     // Flag used to suppress echoing server-applied content back to the server.
     this._applyingServerContent = false;
 
@@ -113,11 +290,12 @@ export default {
 
     // --- Create Tiptap editor ---
     this.editor = new RTE.Editor({
-      element: this.$el,
+      element: this.$refs.editorEl,
       editable: !this.disable,
       extensions: [
         // history: false is mandatory — Yjs/y-prosemirror provides its own undo stack.
         RTE.StarterKit.configure({ history: false }),
+        RTE.Underline,
         RTE.Collaboration.configure({ document: this.ydoc }),
         // CollaborationCursor only requires provider.awareness — our Awareness object satisfies this.
         RTE.CollaborationCursor.configure({
@@ -134,6 +312,10 @@ export default {
         if (!this._applyingServerContent) {
           this.$emit('update:value', editor.getHTML());
         }
+      },
+      // Bump editorUpdated on every transaction so toolbar active-state re-evaluates.
+      onTransaction: () => {
+        this.editorUpdated += 1;
       },
     });
 

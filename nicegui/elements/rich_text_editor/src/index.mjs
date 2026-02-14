@@ -6,6 +6,7 @@ export { StarterKit } from '@tiptap/starter-kit';
 export { Collaboration } from '@tiptap/extension-collaboration';
 export { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
 export { Image } from '@tiptap/extension-image';
+export { Underline } from '@tiptap/extension-underline';
 export { Table } from '@tiptap/extension-table';
 export { TableRow } from '@tiptap/extension-table-row';
 export { TableCell } from '@tiptap/extension-table-cell';

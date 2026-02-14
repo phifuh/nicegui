@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 # ruff: noqa: TID252
 from ... import rich_text_editor_room
@@ -26,33 +27,36 @@ class RichTextEditor(ValueElement, DisableableElement, component='rich_text_edit
     :param user: cursor identity shown to collaborators,
         e.g. ``{'name': 'Alice', 'color': '#3b82f6'}``.
         Defaults to an anonymous user with a random colour.
+    :param toolbar: ``True`` (default) shows the full toolbar, ``False`` hides it,
+        or pass a list of lists to define custom button groups, e.g.
+        ``[['bold', 'italic'], ['h1', 'h2'], ['undo', 'redo']]``.
+        Available IDs: ``bold``, ``italic``, ``underline``, ``strike``, ``code``,
+        ``heading`` (dropdown showing Normal/H1/H2/H3), ``h1``, ``h2``, ``h3``,
+        ``bullet_list``, ``ordered_list``,
+        ``blockquote``, ``code_block``, ``table``, ``undo``, ``redo``, ``hr``.
     :param on_change: callback invoked with a ``ValueChangeEventArguments`` whenever the HTML
         content changes.
-
-    Default Editor:
     """
 
     VALUE_PROP = 'value'
     LOOPBACK = None  # Yjs (in the Vue component) owns document state; no server echo needed.
 
     def __init__(self, value: str = '', *, doc_id: str | None = None, user: dict[str, str] | None = None,
+                 toolbar: bool | list[list[str]] = True,
                  on_change: Handler[ValueChangeEventArguments] | None = None) -> None:
-        """Init the RichTextEditor."""
+        """Create a collaborative rich-text editor."""
         self._doc_id = doc_id if doc_id is not None else str(uuid.uuid4())
         super().__init__(value=value, on_value_change=None)
+        self.add_resource(Path(__file__).parent / 'dist')
         if on_change is not None:
             self.on_value_change(on_change)
         self._props['doc-id'] = self._doc_id
         self._props['user'] = user or {}
+        self._props['toolbar'] = toolbar
         self._update_method = 'setContentFromProps'
 
     def _event_args_to_value(self, e: GenericEventArguments) -> str:
-        """Carry the HTML string emitted by Tiptap's onUpdate hook.
-
-        Returns:
-            Emptz string or the event arguments
-
-        """
+        """Return the HTML string emitted by Tiptap's onUpdate hook, or an empty string."""  # noqa: DOC201
         args = e.args
         return args if isinstance(args, str) else ''
 
@@ -70,13 +74,8 @@ class RichTextEditor(ValueElement, DisableableElement, component='rich_text_edit
 
         Works correctly even when no clients are currently connected to the room.
 
-        :raises ImportError: if ``y-py`` is not installed
-            (``pip install y-py``).
-
-        Returns:
-            All data as bytes
-
-        """
+        :raises ImportError: if ``y-py`` is not installed (``pip install y-py``).
+        """  # noqa: DOC201
         return rich_text_editor_room.get_state(self._doc_id)
 
     def set_state(self, data: bytes) -> None:

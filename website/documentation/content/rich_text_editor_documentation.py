@@ -1,6 +1,3 @@
-from turtle import title
-
-from docutils.nodes import description
 from nicegui import ui
 
 from . import doc
@@ -10,6 +7,40 @@ def main_demo() -> None:
     ui.rich_text_editor('<p>Hello, <strong>world!</strong></p>').classes('h-full w-full border')
 
 
+@doc.demo('Custom toolbar', '''
+Pass a list of lists to ``toolbar`` to control which buttons appear and how
+they are grouped (each inner list becomes a button group with a separator).
+Use ``toolbar=False`` to hide the toolbar entirely.
+''')
+def toolbar_demo() -> None:
+    ui.rich_text_editor('<p>Minimal toolbar</p>', toolbar=[
+        ['bold', 'italic', 'underline'],
+        ['bullet_list', 'ordered_list'],
+        ['undo', 'redo'],
+    ]).classes('h-full w-full border')
+
+
+@doc.demo('Tables', '''
+The editor supports multi-column tables with a header row out of the box.
+Use the ``table`` toolbar button to insert a new 3×3 table, or supply
+initial HTML with a ``<table>`` element.
+Tab / Shift-Tab navigates between cells; cell content supports all inline
+formatting (bold, italic, etc.).
+''')
+def table_demo() -> None:
+    ui.rich_text_editor(
+        '<table>'
+        '<thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>'
+        '<tbody>'
+        '<tr><td>Alice</td><td>Engineer</td><td>Active</td></tr>'
+        '<tr><td>Bob</td><td>Designer</td><td>On leave</td></tr>'
+        '</tbody>'
+        '</table>',
+        toolbar=[['bold', 'italic'], ['table'], ['undo', 'redo']], 
+        doc_id='shared-table'
+    ).classes('h-full w-full border')
+
+
 @doc.demo('Collaborative editing', '''
 Two or more clients sharing the same ``doc_id`` edit the same document
 in real time without any external server.
@@ -17,22 +48,21 @@ Open this demo in two browser tabs to see collaboration in action.
 ''')
 def collab_demo() -> None:
     ui.label('Open a second tab and start typing, changes appear instantly.').classes('text-sm text-gray-500')
-    ui.rich_text_editor("", doc_id='shared-room').classes('h-full w-full border')
+    ui.rich_text_editor("", doc_id='shared-room', ).classes('h-full w-full border')
 
 
 @doc.demo('Named users with colored cursors', '''
-Pass a ``user`` dict with a ``name`` and ``color`` to show collaborators'
+Pass a ``user`` dict with a ``name`` and ``color`` to show collaborators\'
 cursor positions and names inside the editor.
 ''')
 def user_demo() -> None:
+    def join_room(name: str, color: str) -> None:
+        ui.rich_text_editor("", doc_id='named-room', user={'name': name, 'color': color}).classes('h-full w-full border')
+
     with ui.row():
         name = ui.input("Input your name", value="")
         color = ui.color_input("Select your color")
     ui.button("join room").on_click(lambda: join_room(name.value, color.value))
-
-def join_room(name: str, color):
-    print(type(color))
-    ui.rich_text_editor("", doc_id='named-room', user={'name': name, 'color': color}).classes('h-full w-full border')
 
 
 # NOTE The states requires the ``y-py`` package: ``pip install y-py``

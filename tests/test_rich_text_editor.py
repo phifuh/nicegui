@@ -129,6 +129,28 @@ def test_remove_sid_cleans_rooms():
     assert 'sid-1' not in rich_text_editor_room._rooms['room-b']
 
 
+def test_toolbar_default_true():
+    """toolbar prop defaults to True."""
+    with ui.row():
+        editor = ui.rich_text_editor()
+    assert editor._props.get('toolbar') is True
+
+
+def test_toolbar_disabled():
+    """toolbar=False is forwarded to the Vue component."""
+    with ui.row():
+        editor = ui.rich_text_editor(toolbar=False)
+    assert editor._props.get('toolbar') is False
+
+
+def test_toolbar_custom_groups():
+    """A 2D list toolbar is forwarded to the Vue component unchanged."""
+    groups = [['bold', 'italic'], ['undo', 'redo']]
+    with ui.row():
+        editor = ui.rich_text_editor(toolbar=groups)
+    assert editor._props.get('toolbar') == groups
+
+
 def test_update_method_is_set():
     """_update_method is set so NiceGUI calls setContentFromProps on prop updates."""
     with ui.row():
