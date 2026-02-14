@@ -6,6 +6,7 @@ y-py is an optional dependency; its absence is reported with a clear message.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 
 try:
@@ -72,8 +73,8 @@ def set_state(doc_id: str, data: bytes) -> None:
 
 async def _broadcast_init(doc_id: str, update: list[int]) -> None:
     payload = {'doc_id': doc_id, 'update': update}
-    for sid in list(_rooms.get(doc_id, set())):
-        await core.sio.emit('yjs_init', payload, to=sid)
+    sids = list(_rooms.get(doc_id, set()))
+    await asyncio.gather(*(core.sio.emit('yjs_init', payload, to=sid) for sid in sids))
 
 
 def remove_sid(sid: str) -> None:
@@ -130,9 +131,8 @@ def setup() -> None:
                 _log.exception('yjs_update: apply failed for doc_id=%s', doc_id)
                 return
         payload = {'doc_id': doc_id, 'update': raw}
-        for other_sid in list(_rooms.get(doc_id, set())):
-            if other_sid != sid:
-                await core.sio.emit('yjs_update', payload, to=other_sid)
+        others = [s for s in _rooms.get(doc_id, set()) if s != sid]
+        await asyncio.gather(*(core.sio.emit('yjs_update', payload, to=s) for s in others))
 
     @core.sio.on('yjs_awareness')
     async def _on_yjs_awareness(sid: str, data: dict) -> None:
@@ -141,6 +141,5 @@ def setup() -> None:
         if not doc_id or not awareness:
             return
         payload = {'doc_id': doc_id, 'awareness': awareness}
-        for other_sid in list(_rooms.get(doc_id, set())):
-            if other_sid != sid:
-                await core.sio.emit('yjs_awareness', payload, to=other_sid)
+        others = [s for s in _rooms.get(doc_id, set()) if s != sid]
+        await asyncio.gather(*(core.sio.emit('yjs_awareness', payload, to=s) for s in others))
