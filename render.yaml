@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: rte-demo
+    env: python
+    buildCommand: pip install .
+    startCommand: python demo.py
+    envVars:
+      - key: STORAGE_SECRET
+        generateValue: true
