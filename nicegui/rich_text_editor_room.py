@@ -55,18 +55,24 @@ def get_state(doc_id: str) -> bytes:
 
 
 def set_state(doc_id: str, data: bytes) -> None:
-    """Apply persisted Yjs binary state and broadcast it to connected clients.
+    """Replace the Yjs document state and broadcast it to connected clients.
 
-    The update is CRDT-merged into the in-memory document and immediately
-    broadcast to all clients that are currently in the room.
+    The document is replaced with a fresh Y.Doc populated from *data*, rather
+    than CRDT-merged.  A plain merge cannot restore deleted content because
+    CRDT deletions are permanent; a fresh document avoids this.
+
+    Connected clients receive a ``yjs_reset`` event which causes them to
+    recreate their local Y.Doc so their deletion history is also cleared.
 
     :param data: raw Yjs state bytes as returned by :func:`get_state`.
     :raises ImportError: if ``y-py`` is not installed.
     """
-    doc = _get_or_create_doc(doc_id)
-    Y.apply_update(doc, data)
+    _require_y_py()
+    # Replace — not merge — so CRDT deletions in the old doc do not block restore.
+    _docs[doc_id] = Y.YDoc()
+    Y.apply_update(_docs[doc_id], data)
     background_tasks.create(
-        _broadcast_init(doc_id, list(data)),
+        _broadcast_reset(doc_id, list(data)),
         name=f'yjs_set_state_{doc_id}',
     )
 
@@ -75,6 +81,18 @@ async def _broadcast_init(doc_id: str, update: list[int]) -> None:
     payload = {'doc_id': doc_id, 'update': update}
     sids = list(_rooms.get(doc_id, set()))
     await asyncio.gather(*(core.sio.emit('yjs_init', payload, to=sid) for sid in sids))
+
+
+async def _broadcast_reset(doc_id: str, update: list[int]) -> None:
+    """Broadcast a full state reset to all clients in the room.
+
+    Unlike ``yjs_init`` (which clients CRDT-merge), ``yjs_reset`` signals that
+    clients must recreate their local Y.Doc from scratch so deletion history
+    is cleared.
+    """
+    payload = {'doc_id': doc_id, 'update': update}
+    sids = list(_rooms.get(doc_id, set()))
+    await asyncio.gather(*(core.sio.emit('yjs_reset', payload, to=sid) for sid in sids))
 
 
 def remove_sid(sid: str) -> None:

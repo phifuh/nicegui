@@ -209,6 +209,76 @@ export default {
       if (!this.editor) return;
       this.editor.chain().focus()[cmd]().run();
     },
+    // Full document reset triggered by a server-side set_state() call.
+    // A plain CRDT merge cannot restore deleted content (deletions are permanent),
+    // so we recreate the Y.Doc and the Tiptap editor from scratch.
+    async _resetToState(updateBytes) {
+      this.awareness.destroy();
+      this.editor.destroy();
+
+      // Fresh Yjs document populated with the restored state.
+      this.ydoc = new RTE.Y.Doc();
+      this.awareness = new RTE.Awareness(this.ydoc);
+      RTE.Y.applyUpdate(this.ydoc, updateBytes, 'server');
+
+      // Re-bind outbound listeners to the new ydoc / awareness instances.
+      this.ydoc.on('update', (update, origin) => {
+        if (origin === 'server') return;
+        if (!window.socket) return;
+        window.socket.emit('yjs_update', {
+          client_id: window.clientId,
+          doc_id: this.docId,
+          update: Array.from(update),
+        });
+      });
+      this.awareness.on('update', ({ added, updated, removed }) => {
+        if (!window.socket) return;
+        const changed = [...added, ...updated, ...removed];
+        const encoded = RTE.encodeAwarenessUpdate(this.awareness, changed);
+        window.socket.emit('yjs_awareness', {
+          client_id: window.clientId,
+          doc_id: this.docId,
+          awareness: Array.from(encoded),
+        });
+      });
+
+      // Update the inbound awareness handler to reference the new awareness object.
+      this._onYjsAwareness = (data) => {
+        if (data.doc_id !== this.docId) return;
+        RTE.applyAwarenessUpdate(this.awareness, new Uint8Array(data.awareness), 'server');
+      };
+      window.socket.off('yjs_awareness', this._onYjsAwareness);
+      window.socket.on('yjs_awareness', this._onYjsAwareness);
+
+      // Recreate the Tiptap editor bound to the new ydoc.
+      await this.$nextTick();
+      const userInfo = this.user?.name ? this.user : {
+        name: 'Anonymous',
+        color: '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0'),
+      };
+      this.editor = new RTE.Editor({
+        element: this.$refs.editorEl,
+        editable: !this.disable,
+        extensions: [
+          RTE.StarterKit.configure({ history: false }),
+          RTE.Underline,
+          RTE.Collaboration.configure({ document: this.ydoc }),
+          RTE.CollaborationCursor.configure({
+            provider: { awareness: this.awareness },
+            user: userInfo,
+          }),
+          RTE.Image,
+          RTE.Table.configure({ resizable: true }),
+          RTE.TableRow,
+          RTE.TableCell,
+          RTE.TableHeader,
+        ],
+        onUpdate: ({ editor }) => {
+          if (!this._applyingServerContent) this.$emit('update:value', editor.getHTML());
+        },
+        onTransaction: () => { this.editorUpdated += 1; },
+      });
+    },
     // Execute the command for a dropdown menu item.
     execDropdownItem(item) {
       if (!this.editor) return;
@@ -268,6 +338,10 @@ export default {
       if (data.doc_id !== this.docId) return;
       RTE.Y.applyUpdate(this.ydoc, new Uint8Array(data.update), 'server');
     };
+    this._onYjsReset = (data) => {
+      if (data.doc_id !== this.docId) return;
+      this._resetToState(new Uint8Array(data.update));
+    };
 
     // Register inbound listeners once the socket is ready.
     // We poll with nextTick until window.socket is available (set by root Vue mounted()).
@@ -278,6 +352,7 @@ export default {
       window.socket.on('yjs_update', this._onYjsUpdate);
       window.socket.on('yjs_awareness', this._onYjsAwareness);
       window.socket.on('yjs_init', this._onYjsInit);
+      window.socket.on('yjs_reset', this._onYjsReset);
       // Join the room — server replies with yjs_init if the doc has existing state.
       window.socket.emit('yjs_join', { client_id: window.clientId, doc_id: this.docId });
     };
@@ -342,6 +417,7 @@ export default {
       window.socket.off('yjs_update', this._onYjsUpdate);
       window.socket.off('yjs_awareness', this._onYjsAwareness);
       window.socket.off('yjs_init', this._onYjsInit);
+      window.socket.off('yjs_reset', this._onYjsReset);
     }
 
     if (this.awareness) this.awareness.destroy();

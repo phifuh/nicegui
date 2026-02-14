@@ -119,6 +119,82 @@ def test_room_state_roundtrip():
     assert isinstance(state2, bytes)
 
 
+def test_single_persistence_state_preserved():
+    """Restored state is byte-for-byte equivalent to the saved snapshot."""
+    pytest.importorskip('y_py')
+    import y_py as Y
+    from nicegui import rich_text_editor_room
+
+    doc_id = f'persist-preserved-{id(object())}'
+    with ui.row():
+        editor = ui.rich_text_editor(doc_id=doc_id)
+
+    # Write known content into the server-side Y.Doc.
+    doc = rich_text_editor_room._get_or_create_doc(doc_id)
+    ymap = doc.get_map('meta')
+    with doc.begin_transaction() as txn:
+        ymap.set(txn, 'version', '1')
+
+    snapshot = editor.get_state()
+    assert len(snapshot) > 2  # non-empty (Yjs empty-state sentinel is exactly 2 bytes)
+
+    # Apply more edits — simulates user activity after the save point.
+    with doc.begin_transaction() as txn:
+        ymap.set(txn, 'version', '2')
+
+    after_edit = editor.get_state()
+    assert after_edit != snapshot  # confirm the state actually changed
+
+    # Restore the snapshot.
+    editor.set_state(snapshot)
+    restored = editor.get_state()
+
+    # Build the canonical reference bytes: fresh doc + snapshot applied.
+    ref_doc = Y.YDoc()
+    Y.apply_update(ref_doc, snapshot)
+    ref_bytes = bytes(Y.encode_state_as_update(ref_doc))
+
+    assert restored == ref_bytes
+
+
+def test_debounce_unsaved_edits_excluded_from_restore():
+    """Edits within the debounce window (not yet auto-saved) are absent after restore."""
+    pytest.importorskip('y_py')
+    import y_py as Y
+    from nicegui import rich_text_editor_room
+
+    doc_id = f'debounce-unsaved-{id(object())}'
+    with ui.row():
+        editor = ui.rich_text_editor(doc_id=doc_id)
+
+    # Establish the "auto-saved" snapshot — the state the debounce timer captured.
+    doc = rich_text_editor_room._get_or_create_doc(doc_id)
+    ymap = doc.get_map('content')
+    with doc.begin_transaction() as txn:
+        ymap.set(txn, 'saved', 'yes')
+
+    snapshot = editor.get_state()  # what the debounce timer would have stored
+
+    # Simulate user typing within the 2 s debounce window — NOT auto-saved yet.
+    with doc.begin_transaction() as txn:
+        ymap.set(txn, 'unsaved', 'yes')
+
+    unsaved_state = editor.get_state()
+    assert unsaved_state != snapshot  # confirm unsaved edits changed the state
+
+    # Debounce timer fires: restore the earlier (auto-saved) snapshot.
+    editor.set_state(snapshot)
+    restored = editor.get_state()
+
+    # Restored state must equal the snapshot, not the unsaved edits.
+    ref_doc = Y.YDoc()
+    Y.apply_update(ref_doc, snapshot)
+    ref_bytes = bytes(Y.encode_state_as_update(ref_doc))
+
+    assert restored == ref_bytes      # matches the auto-saved snapshot
+    assert restored != unsaved_state  # unsaved content is gone
+
+
 def test_remove_sid_cleans_rooms():
     """remove_sid discards a socket-ID from every room it was in."""
     from nicegui import rich_text_editor_room

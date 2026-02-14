@@ -118,4 +118,59 @@ def persistence_demo() -> None:
         ui.button('Restore', on_click=restore)
 
 
+@doc.demo('Multi-user persistence strategy', '''
+When multiple clients share a ``doc_id``, always read state **server-side** via
+``get_state()`` — never collect HTML from individual clients.
+The server maintains one Yjs document per ``doc_id`` that merges every client\'s edits
+in real time, so a single call always returns the complete state regardless of how many
+users are connected.
+
+The recommended save strategy is to **debounce writes on change**: cancel the previous
+timer on each edit and write to the database only after a quiet period.
+Ten concurrent users still produce at most one database write per interval.
+
+``set_state()`` is a **hard reset** — every connected client recreates its Yjs document
+from the snapshot, discarding edits made after that point.
+The typical use case is pre-populating a room from the database before users connect.
+If the room is already active, all clients will lose unsaved changes, so warn users first.
+''')
+def multi_user_persistence_demo() -> None:
+    import asyncio
+    from nicegui import background_tasks
+
+    db: dict[str, bytes] = {}
+    _pending: dict[str, asyncio.Task] = {}
+    status = ui.label('No changes yet.').classes('text-sm text-gray-500')
+
+    async def _deferred_save(doc_id: str) -> None:
+        await asyncio.sleep(2)
+        db[doc_id] = editor.get_state()
+        status.set_text(f'Auto-saved ({len(db[doc_id])} bytes).')
+
+    def on_change(_) -> None:
+        doc_id = editor.doc_id
+        if task := _pending.get(doc_id):
+            task.cancel()
+        _pending[doc_id] = background_tasks.create(
+            _deferred_save(doc_id), name=f'save_{doc_id}',
+        )
+        status.set_text('Unsaved changes…')
+
+    editor = ui.rich_text_editor(
+        '<p>Edit here — auto-saved 2 s after you stop typing.</p>',
+        doc_id='persist-multi',
+        on_change=on_change,
+    ).classes('h-full w-full border')
+
+    def restore() -> None:
+        data = db.get(editor.doc_id)
+        if data:
+            editor.set_state(data)
+            status.set_text('Restored.')
+        else:
+            ui.notify('Nothing saved yet.', type='warning')
+
+    ui.button('Restore last save', on_click=restore)
+
+
 doc.reference(ui.rich_text_editor)
