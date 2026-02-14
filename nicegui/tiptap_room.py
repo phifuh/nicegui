@@ -77,11 +77,6 @@ def set_state(doc_id: str, data: bytes) -> None:
     )
 
 
-async def _broadcast_init(doc_id: str, update: list[int]) -> None:
-    payload = {'doc_id': doc_id, 'update': update}
-    sids = list(_rooms.get(doc_id, set()))
-    await asyncio.gather(*(core.sio.emit('yjs_init', payload, to=sid) for sid in sids))
-
 
 async def _broadcast_reset(doc_id: str, update: list[int]) -> None:
     """Broadcast a full state reset to all clients in the room.
