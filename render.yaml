@@ -1,10 +1,7 @@
 services:
   - type: web
     name: rte-demo
-    env: python
-    pythonVersion: "3.13"
-    buildCommand: uv pip install --system .
-    startCommand: python demo.py
+    env: docker
     envVars:
       - key: STORAGE_SECRET
         generateValue: true

@@ -60,9 +60,7 @@ dev = [
     "plotly>=5.13,<7.0",  # extra: plotly
     "matplotlib>=3.5.0,<4",  # extra: matplotlib
     "fonttools>=4.60.2",  # https://github.com/zauberzeug/nicegui/security/dependabot/68, for matplotlib
-    # nicegui-highcharts is omitted here to avoid a circular-dependency resolution
-    # failure in uv for Python 3.14 markers. Install it explicitly when needed:
-    #   uv sync --extra highcharts
+    "nicegui-highcharts>=2.0.2,<3",  # extra: highcharts
     "redis>=4.0.0",  # extra: redis
     "y-py==0.6.2",  # extra: y-py
     {include-group = "types"},
