@@ -81,34 +81,42 @@ export default {
         </template>
       </div>
       <div v-if="isInTable" class="row no-wrap items-center q-pa-xs nicegui-rte-table-toolbar">
-        <q-icon name="table_chart" size="xs" class="q-mr-xs" style="opacity:0.4" />
-        <q-btn-group flat>
-          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addRowBefore')">
-            row ↑<q-tooltip>Add row above</q-tooltip>
-          </q-btn>
-          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addRowAfter')">
-            row ↓<q-tooltip>Add row below</q-tooltip>
-          </q-btn>
-          <q-btn dense flat no-caps size="sm" color="negative" @mousedown.prevent @click="execTableCmd('deleteRow')">
-            del row<q-tooltip>Delete row</q-tooltip>
-          </q-btn>
-        </q-btn-group>
-        <q-separator vertical class="q-mx-xs" />
-        <q-btn-group flat>
-          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addColumnBefore')">
-            col ←<q-tooltip>Add column left</q-tooltip>
-          </q-btn>
-          <q-btn dense flat no-caps size="sm" @mousedown.prevent @click="execTableCmd('addColumnAfter')">
-            col →<q-tooltip>Add column right</q-tooltip>
-          </q-btn>
-          <q-btn dense flat no-caps size="sm" color="negative" @mousedown.prevent @click="execTableCmd('deleteColumn')">
-            del col<q-tooltip>Delete column</q-tooltip>
-          </q-btn>
-        </q-btn-group>
-        <q-separator vertical class="q-mx-xs" />
-        <q-btn dense flat no-caps size="sm" color="negative" @mousedown.prevent @click="execTableCmd('deleteTable')">
-          del table<q-tooltip>Delete table</q-tooltip>
-        </q-btn>
+        <q-btn-dropdown dense flat no-icon-animation no-caps icon="border_all" label="Edit table" @mousedown.prevent>
+          <q-list dense>
+            <q-item-label header class="text-caption q-pb-none">Rows</q-item-label>
+            <q-item clickable v-close-popup @click="execTableCmd('addRowBefore')">
+              <q-item-section avatar><q-icon name="keyboard_arrow_up" /></q-item-section>
+              <q-item-section>Add row above</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="execTableCmd('addRowAfter')">
+              <q-item-section avatar><q-icon name="keyboard_arrow_down" /></q-item-section>
+              <q-item-section>Add row below</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="execTableCmd('deleteRow')">
+              <q-item-section avatar><q-icon name="delete_outline" color="negative" /></q-item-section>
+              <q-item-section class="text-negative">Delete row</q-item-section>
+            </q-item>
+            <q-separator />
+            <q-item-label header class="text-caption q-pb-none">Columns</q-item-label>
+            <q-item clickable v-close-popup @click="execTableCmd('addColumnBefore')">
+              <q-item-section avatar><q-icon name="keyboard_arrow_left" /></q-item-section>
+              <q-item-section>Add column left</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="execTableCmd('addColumnAfter')">
+              <q-item-section avatar><q-icon name="keyboard_arrow_right" /></q-item-section>
+              <q-item-section>Add column right</q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="execTableCmd('deleteColumn')">
+              <q-item-section avatar><q-icon name="delete_outline" color="negative" /></q-item-section>
+              <q-item-section class="text-negative">Delete column</q-item-section>
+            </q-item>
+            <q-separator />
+            <q-item clickable v-close-popup @click="execTableCmd('deleteTable')">
+              <q-item-section avatar><q-icon name="grid_off" color="negative" /></q-item-section>
+              <q-item-section class="text-negative">Delete table</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
       </div>
       <div ref="editorEl" style="flex:1;min-height:0;overflow-y:auto;"></div>
     </div>

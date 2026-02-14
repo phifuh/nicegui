@@ -24,6 +24,8 @@ def toolbar_demo() -> None:
 The editor supports multi-column tables with a header row out of the box.
 Use the ``table`` toolbar button to insert a new 3×3 table, or supply
 initial HTML with a ``<table>`` element.
+Clicking inside a table reveals an *Edit table* dropdown for adding or
+removing rows and columns, or deleting the whole table.
 Tab / Shift-Tab navigates between cells; cell content supports all inline
 formatting (bold, italic, etc.).
 ''')
