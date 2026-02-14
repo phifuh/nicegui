@@ -52,6 +52,9 @@ core.sio = sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*
 sio_app = SocketIoApp(socketio_server=sio, socketio_path='/socket.io')
 app.mount('/_nicegui_ws/', sio_app)
 
+from .rich_text_editor_room import setup as _setup_rich_text_editor_room  # noqa: E402, I001
+_setup_rich_text_editor_room()
+
 
 mimetypes.add_type('text/javascript', '.js')
 mimetypes.add_type('text/javascript', '.mjs')
@@ -223,6 +226,8 @@ def _on_disconnect(sid: str) -> None:
     client = Client.instances.get(client_id)
     if client:
         client.handle_disconnect(sid)
+    from .rich_text_editor_room import remove_sid
+    remove_sid(sid)
 
 
 @sio.on('event')
