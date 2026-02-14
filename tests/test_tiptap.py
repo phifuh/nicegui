@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from nicegui import ui
-from nicegui.testing import Screen
+from nicegui.testing import Screen, User
 
 # pylint: disable=protected-access
 
@@ -18,52 +18,83 @@ def test_tiptap_renders(screen: Screen):
     screen.should_contain('Hello World')
 
 
-def test_unique_doc_id_per_instance():
+async def test_unique_doc_id_per_instance(user: User) -> None:
     """Two editors without an explicit doc_id receive distinct UUIDs."""
-    with ui.row():
-        e1 = ui.tiptap()
-        e2 = ui.tiptap()
-    assert e1.doc_id != e2.doc_id
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['e1'] = ui.tiptap()
+        results['e2'] = ui.tiptap()
+
+    await user.open('/')
+    assert results['e1'].doc_id != results['e2'].doc_id
 
 
-def test_explicit_doc_id():
+async def test_explicit_doc_id(user: User) -> None:
     """An explicit doc_id is forwarded to the element props unchanged."""
-    with ui.row():
-        editor = ui.tiptap(doc_id='my-room')
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(doc_id='my-room')
+
+    await user.open('/')
+    editor = results['editor']
     assert editor.doc_id == 'my-room'
     assert editor._props['doc-id'] == 'my-room'
 
 
-def test_user_prop():
+async def test_user_prop(user: User) -> None:
     """The user dict is stored in _props and forwarded to the Vue component."""
-    user = {'name': 'Alice', 'color': '#3b82f6'}
-    with ui.row():
-        editor = ui.tiptap(user=user)
-    assert editor._props['user'] == user
+    user_data = {'name': 'Alice', 'color': '#3b82f6'}
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(user=user_data)
+
+    await user.open('/')
+    assert results['editor']._props['user'] == user_data
 
 
-def test_empty_user_prop_defaults_to_empty_dict():
+async def test_empty_user_prop_defaults_to_empty_dict(user: User) -> None:
     """When user is omitted, _props['user'] is an empty dict (Vue picks random colour)."""
-    with ui.row():
-        editor = ui.tiptap()
-    assert editor._props['user'] == {}
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap()
+
+    await user.open('/')
+    assert results['editor']._props['user'] == {}
 
 
-def test_disable():
+async def test_disable(user: User) -> None:
     """Disabled editor sets the disable prop correctly."""
-    with ui.row():
-        editor = ui.tiptap()
-    editor.disable()
-    assert editor._props.get('disable') is True
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap()
+
+    await user.open('/')
+    results['editor'].disable()
+    assert results['editor']._props.get('disable') is True
 
 
-def test_get_state_requires_y_py():
+async def test_get_state_requires_y_py(user: User) -> None:
     """get_state raises ImportError with a helpful message when y-py is absent."""
     from nicegui import tiptap_room
 
-    with ui.row():
-        editor = ui.tiptap(doc_id='state-test')
+    results: dict = {}
 
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(doc_id='state-test')
+
+    await user.open('/')
+    editor = results['editor']
     original = tiptap_room.HAS_Y_PY
     try:
         tiptap_room.HAS_Y_PY = False
@@ -73,13 +104,18 @@ def test_get_state_requires_y_py():
         tiptap_room.HAS_Y_PY = original
 
 
-def test_set_state_requires_y_py():
+async def test_set_state_requires_y_py(user: User) -> None:
     """set_state raises ImportError with a helpful message when y-py is absent."""
     from nicegui import tiptap_room
 
-    with ui.row():
-        editor = ui.tiptap(doc_id='set-state-test')
+    results: dict = {}
 
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(doc_id='set-state-test')
+
+    await user.open('/')
+    editor = results['editor']
     original = tiptap_room.HAS_Y_PY
     try:
         tiptap_room.HAS_Y_PY = False
@@ -89,29 +125,38 @@ def test_set_state_requires_y_py():
         tiptap_room.HAS_Y_PY = original
 
 
-def test_room_state_is_initially_bytes():
+async def test_room_state_is_initially_bytes(user: User) -> None:
     """get_state returns bytes (empty Yjs state) even before any client connects."""
     pytest.importorskip('y_py')
 
     doc_id = f'initial-state-{id(object())}'
-    with ui.row():
-        editor = ui.tiptap(doc_id=doc_id)
+    results: dict = {}
 
-    state = editor.get_state()
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(doc_id=doc_id)
+
+    await user.open('/')
+    state = results['editor'].get_state()
     assert isinstance(state, bytes)
     # Yjs encodes an empty document as exactly 2 bytes.
     assert len(state) >= 2
 
 
-def test_room_state_roundtrip():
+async def test_room_state_roundtrip(user: User) -> None:
     """get_state / set_state roundtrip does not corrupt the doc (requires y-py)."""
     pytest.importorskip('y_py')
     from nicegui import tiptap_room
 
     doc_id = f'roundtrip-{id(object())}'
-    with ui.row():
-        editor = ui.tiptap(doc_id=doc_id)
+    results: dict = {}
 
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(doc_id=doc_id)
+
+    await user.open('/')
+    editor = results['editor']
     state1 = editor.get_state()
     # set_state with the same bytes is a no-op CRDT merge — should not raise.
     tiptap_room.set_state(doc_id, state1)
@@ -119,7 +164,7 @@ def test_room_state_roundtrip():
     assert isinstance(state2, bytes)
 
 
-def test_single_persistence_state_preserved():
+async def test_single_persistence_state_preserved(user: User) -> None:
     """Restored state is byte-for-byte equivalent to the saved snapshot."""
     pytest.importorskip('y_py')
     import y_py as Y
@@ -127,8 +172,14 @@ def test_single_persistence_state_preserved():
     from nicegui import tiptap_room
 
     doc_id = f'persist-preserved-{id(object())}'
-    with ui.row():
-        editor = ui.tiptap(doc_id=doc_id)
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(doc_id=doc_id)
+
+    await user.open('/')
+    editor = results['editor']
 
     # Write known content into the server-side Y.Doc.
     doc = tiptap_room._get_or_create_doc(doc_id)
@@ -157,8 +208,12 @@ def test_single_persistence_state_preserved():
 
     assert restored == ref_bytes
 
+    # Release YDocs on this thread to avoid y-py "unsendable" Rust panic on GC.
+    del ref_doc
+    tiptap_room._docs.pop(doc_id, None)
 
-def test_debounce_unsaved_edits_excluded_from_restore():
+
+async def test_debounce_unsaved_edits_excluded_from_restore(user: User) -> None:
     """Edits within the debounce window (not yet auto-saved) are absent after restore."""
     pytest.importorskip('y_py')
     import y_py as Y
@@ -166,8 +221,14 @@ def test_debounce_unsaved_edits_excluded_from_restore():
     from nicegui import tiptap_room
 
     doc_id = f'debounce-unsaved-{id(object())}'
-    with ui.row():
-        editor = ui.tiptap(doc_id=doc_id)
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(doc_id=doc_id)
+
+    await user.open('/')
+    editor = results['editor']
 
     # Establish the "auto-saved" snapshot — the state the debounce timer captured.
     doc = tiptap_room._get_or_create_doc(doc_id)
@@ -196,6 +257,10 @@ def test_debounce_unsaved_edits_excluded_from_restore():
     assert restored == ref_bytes      # matches the auto-saved snapshot
     assert restored != unsaved_state  # unsaved content is gone
 
+    # Release YDocs on this thread to avoid y-py "unsendable" Rust panic on GC.
+    del ref_doc
+    tiptap_room._docs.pop(doc_id, None)
+
 
 def test_remove_sid_cleans_rooms():
     """remove_sid discards a socket-ID from every room it was in."""
@@ -209,33 +274,53 @@ def test_remove_sid_cleans_rooms():
     assert 'sid-1' not in tiptap_room._rooms['room-b']
 
 
-def test_toolbar_default_true():
+async def test_toolbar_default_true(user: User) -> None:
     """toolbar prop defaults to True."""
-    with ui.row():
-        editor = ui.tiptap()
-    assert editor._props.get('toolbar') is True
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap()
+
+    await user.open('/')
+    assert results['editor']._props.get('toolbar') is True
 
 
-def test_toolbar_disabled():
+async def test_toolbar_disabled(user: User) -> None:
     """toolbar=False is forwarded to the Vue component."""
-    with ui.row():
-        editor = ui.tiptap(toolbar=False)
-    assert editor._props.get('toolbar') is False
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(toolbar=False)
+
+    await user.open('/')
+    assert results['editor']._props.get('toolbar') is False
 
 
-def test_toolbar_custom_groups():
+async def test_toolbar_custom_groups(user: User) -> None:
     """A 2D list toolbar is forwarded to the Vue component unchanged."""
     groups = [['bold', 'italic'], ['undo', 'redo']]
-    with ui.row():
-        editor = ui.tiptap(toolbar=groups)
-    assert editor._props.get('toolbar') == groups
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap(toolbar=groups)
+
+    await user.open('/')
+    assert results['editor']._props.get('toolbar') == groups
 
 
-def test_update_method_is_set():
+async def test_update_method_is_set(user: User) -> None:
     """_update_method is set so NiceGUI calls setContentFromProps on prop updates."""
-    with ui.row():
-        editor = ui.tiptap()
-    assert editor._update_method == 'setContentFromProps'
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap()
+
+    await user.open('/')
+    assert results['editor']._update_method == 'setContentFromProps'
 
 
 def test_value_prop_name():
@@ -244,17 +329,21 @@ def test_value_prop_name():
     assert ui.tiptap.LOOPBACK is None
 
 
-def test_shared_doc_id_returns_identical_state():
+async def test_shared_doc_id_returns_identical_state(user: User) -> None:
     """Two editors with the same doc_id read from the same server-side Yjs room."""
     pytest.importorskip('y_py')
 
     doc_id = f'shared-{id(object())}'
-    with ui.row():
-        editor1 = ui.tiptap(doc_id=doc_id)
-        editor2 = ui.tiptap(doc_id=doc_id)
+    results: dict = {}
 
-    assert editor1.doc_id == editor2.doc_id == doc_id
-    assert editor1.get_state() == editor2.get_state()
+    @ui.page('/')
+    def page():
+        results['e1'] = ui.tiptap(doc_id=doc_id)
+        results['e2'] = ui.tiptap(doc_id=doc_id)
+
+    await user.open('/')
+    assert results['e1'].doc_id == results['e2'].doc_id == doc_id
+    assert results['e1'].get_state() == results['e2'].get_state()
 
 
 def test_table_html_renders(screen: Screen):
@@ -288,20 +377,30 @@ def test_css_contains_collaboration_cursor_styles():
     assert 'collaboration-cursor__caret' in content
 
 
-def test_resource_path_prop_is_set():
+async def test_resource_path_prop_is_set(user: User) -> None:
     """add_resource() must set the resource-path prop so the Vue component can load the CSS."""
-    with ui.row():
-        editor = ui.tiptap()
-    assert 'resource-path' in editor._props, 'resource-path prop missing — add_resource() not called?'
+    results: dict = {}
+
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap()
+
+    await user.open('/')
+    assert 'resource-path' in results['editor']._props, 'resource-path prop missing — add_resource() not called?'
 
 
-def test_event_args_to_value_non_string():
+async def test_event_args_to_value_non_string(user: User) -> None:
     """_event_args_to_value returns an empty string for non-string event args."""
     from nicegui.events import GenericEventArguments
 
-    with ui.row():
-        editor = ui.tiptap()
+    results: dict = {}
 
+    @ui.page('/')
+    def page():
+        results['editor'] = ui.tiptap()
+
+    await user.open('/')
+    editor = results['editor']
     for bad_arg in (None, 42, {}, []):
         e = GenericEventArguments(sender=editor, client=None, args=bad_arg)
         assert editor._event_args_to_value(e) == ''
