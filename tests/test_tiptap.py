@@ -123,6 +123,7 @@ def test_single_persistence_state_preserved():
     """Restored state is byte-for-byte equivalent to the saved snapshot."""
     pytest.importorskip('y_py')
     import y_py as Y
+
     from nicegui import tiptap_room
 
     doc_id = f'persist-preserved-{id(object())}'
@@ -161,6 +162,7 @@ def test_debounce_unsaved_edits_excluded_from_restore():
     """Edits within the debounce window (not yet auto-saved) are absent after restore."""
     pytest.importorskip('y_py')
     import y_py as Y
+
     from nicegui import tiptap_room
 
     doc_id = f'debounce-unsaved-{id(object())}'

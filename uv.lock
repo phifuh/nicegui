@@ -2084,7 +2084,6 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "watchfiles" },
-    { name = "y-py" },
 ]
 
 [package.optional-dependencies]
@@ -2109,6 +2108,9 @@ plotly = [
 ]
 redis = [
     { name = "redis" },
+]
+y-py = [
+    { name = "y-py" },
 ]
 
 [package.dev-dependencies]
@@ -2156,6 +2158,7 @@ dev = [
     { name = "urllib3" },
     { name = "vega-datasets" },
     { name = "webdriver-manager" },
+    { name = "y-py" },
 ]
 types = [
     { name = "pandas-stubs" },
@@ -2206,9 +2209,9 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.22.0" },
     { name = "watchfiles", specifier = ">=0.18.1" },
-    { name = "y-py", specifier = "==0.6.2" },
+    { name = "y-py", marker = "extra == 'y-py'", specifier = "==0.6.2" },
 ]
-provides-extras = ["altair", "anywidget", "highcharts", "matplotlib", "native", "plotly", "redis"]
+provides-extras = ["altair", "anywidget", "highcharts", "matplotlib", "native", "plotly", "redis", "y-py"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2258,6 +2261,7 @@ dev = [
     { name = "urllib3", specifier = ">=2.6.3" },
     { name = "vega-datasets", specifier = ">=0.9.0,<0.10.0" },
     { name = "webdriver-manager", specifier = ">=3.8.6,<5.0.0" },
+    { name = "y-py", specifier = "==0.6.2" },
 ]
 types = [
     { name = "pandas-stubs", marker = "python_full_version < '3.13'", specifier = ">=2.0.0,<3" },

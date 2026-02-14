@@ -75,7 +75,7 @@ Open this demo in two browser tabs to see collaboration in action.
 ''')
 def collab_demo() -> None:
     ui.label('Open a second tab and start typing, changes appear instantly.').classes('text-sm text-gray-500')
-    ui.tiptap("", doc_id='shared-room').classes('h-full w-full border')
+    ui.tiptap('', doc_id='shared-room').classes('h-full w-full border')
 
 
 @doc.demo('Named users with colored cursors', '''
@@ -84,12 +84,12 @@ cursor positions and names inside the editor.
 ''')
 def user_demo() -> None:
     def join_room(name: str, color: str) -> None:
-        ui.tiptap("", doc_id='named-room', user={'name': name, 'color': color}).classes('h-full w-full border')
+        ui.tiptap('', doc_id='named-room', user={'name': name, 'color': color}).classes('h-full w-full border')
 
     with ui.row():
-        name = ui.input("Input your name", value="")
-        color = ui.color_input("Select your color")
-    ui.button("join room").on_click(lambda: join_room(name.value, color.value))
+        name = ui.input('Input your name', value='')
+        color = ui.color_input('Select your color')
+    ui.button('join room').on_click(lambda: join_room(name.value, color.value))
 
 
 # NOTE The states requires the ``y-py`` package: ``pip install y-py``

@@ -4,7 +4,6 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-# ruff: noqa: TID252
 from ... import tiptap_room
 from ...elements.mixins.disableable_element import DisableableElement
 from ...elements.mixins.value_element import ValueElement
@@ -56,7 +55,7 @@ class Tiptap(ValueElement, DisableableElement, component='tiptap.js',
         self._update_method = 'setContentFromProps'
 
     def _event_args_to_value(self, e: GenericEventArguments) -> str:
-        """Return the HTML string emitted by Tiptap's onUpdate hook, or an empty string."""  # noqa: DOC201
+        """Return the HTML string emitted by Tiptap's onUpdate hook, or an empty string."""
         args = e.args
         return args if isinstance(args, str) else ''
 
@@ -75,7 +74,7 @@ class Tiptap(ValueElement, DisableableElement, component='tiptap.js',
         Works correctly even when no clients are currently connected to the room.
 
         :raises ImportError: if ``y-py`` is not installed (``pip install y-py``).
-        """  # noqa: DOC201
+        """
         return tiptap_room.get_state(self._doc_id)
 
     def set_state(self, data: bytes) -> None:
