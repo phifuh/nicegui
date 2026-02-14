@@ -221,7 +221,6 @@ from .elements.radio import Radio as radio
 from .elements.range import Range as range  # pylint: disable=redefined-builtin
 from .elements.rating import Rating as rating
 from .elements.restructured_text import ReStructuredText as restructured_text
-from .elements.tiptap import Tiptap as tiptap
 from .elements.row import Row as row
 from .elements.scene import Scene as scene
 from .elements.scene import SceneView as scene_view
@@ -251,6 +250,7 @@ from .elements.time_input import TimeInput as time_input
 from .elements.timeline import Timeline as timeline
 from .elements.timeline import TimelineEntry as timeline_entry
 from .elements.timer import Timer as timer
+from .elements.tiptap import Tiptap as tiptap
 from .elements.toggle import Toggle as toggle
 from .elements.tooltip import Tooltip as tooltip
 from .elements.tree import Tree as tree
