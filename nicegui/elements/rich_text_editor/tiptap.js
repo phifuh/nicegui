@@ -1,4 +1,4 @@
-import * as RTE from 'nicegui-rich-text-editor';
+import * as RTE from 'nicegui-tiptap';
 import { loadResource } from '../../static/utils/resources.js';
 
 // Button definitions — keyed by the IDs the Python API exposes.
@@ -49,7 +49,7 @@ export default {
   template: `
     <div style="display:flex;flex-direction:column;">
       <div v-if="toolbarGroups.length"
-           class="row no-wrap items-center q-pa-xs nicegui-rte-toolbar">
+           class="row no-wrap items-center q-pa-xs nicegui-tiptap-toolbar">
         <template v-for="(group, gi) in toolbarGroups" :key="gi">
           <q-separator v-if="gi > 0" vertical class="q-mx-xs" />
           <q-btn-group flat>
@@ -80,7 +80,7 @@ export default {
           </q-btn-group>
         </template>
       </div>
-      <div v-if="isInTable" class="row no-wrap items-center q-pa-xs nicegui-rte-table-toolbar">
+      <div v-if="isInTable" class="row no-wrap items-center q-pa-xs nicegui-tiptap-table-toolbar">
         <q-btn-dropdown dense flat no-icon-animation no-caps icon="border_all" label="Edit table" @mousedown.prevent>
           <q-list dense>
             <q-item-label header class="text-caption q-pb-none">Rows</q-item-label>
@@ -288,7 +288,7 @@ export default {
   },
   async mounted() {
     this.$nextTick().then(() =>
-      loadResource(window.path_prefix + `${this.resourcePath}/rich_text_editor.css`),
+      loadResource(window.path_prefix + `${this.resourcePath}/tiptap.css`),
     );
 
     // Flag used to suppress echoing server-applied content back to the server.

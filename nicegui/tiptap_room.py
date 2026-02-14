@@ -1,4 +1,4 @@
-"""Server-side Yjs room manager for ui.rich_text_editor.
+"""Server-side Yjs room manager for ui.tiptap.
 
 Maintains one Y.Doc per doc_id and relays Yjs binary update / awareness
 messages between all connected Socket.IO clients that share that doc_id.
@@ -29,7 +29,7 @@ _rooms: dict[str, set[str]] = {}   # doc_id → set of socket-IDs
 def _require_y_py() -> None:
     if not HAS_Y_PY:
         raise ImportError(
-            'y-py is required for ui.rich_text_editor state persistence. '
+            'y-py is required for ui.tiptap state persistence. '
             'Install it with: pip install y-py'
         )
 
@@ -108,7 +108,7 @@ def remove_sid(sid: str) -> None:
 def setup() -> None:
     """Register all Yjs Socket.IO event handlers on ``core.sio``.
 
-    Called exactly once when the ``rich_text_editor`` package is first imported.
+    Called exactly once when the ``tiptap`` package is first imported.
     """
 
     @core.sio.on('yjs_join')

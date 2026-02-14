@@ -1,18 +1,18 @@
-"""Collaborative rich-text editor element backed by Tiptap + Yjs."""
+"""Tiptap collaborative rich-text editor element backed by Tiptap + Yjs."""
 from __future__ import annotations
 
 import uuid
 from pathlib import Path
 
 # ruff: noqa: TID252
-from ... import rich_text_editor_room
+from ... import tiptap_room
 from ...elements.mixins.disableable_element import DisableableElement
 from ...elements.mixins.value_element import ValueElement
 from ...events import GenericEventArguments, Handler, ValueChangeEventArguments
 
 
-class RichTextEditor(ValueElement, DisableableElement, component='rich_text_editor.js',
-                     esm={'nicegui-rich-text-editor': 'dist'}, default_classes='nicegui-rich-text-editor'):
+class Tiptap(ValueElement, DisableableElement, component='tiptap.js',
+             esm={'nicegui-tiptap': 'dist'}, default_classes='nicegui-tiptap'):
     """Collaborative rich-text editor backed by Tiptap + Yjs.
 
     Multiple browser clients sharing the same ``doc_id`` edit the same document
@@ -44,7 +44,7 @@ class RichTextEditor(ValueElement, DisableableElement, component='rich_text_edit
     def __init__(self, value: str = '', *, doc_id: str | None = None, user: dict[str, str] | None = None,
                  toolbar: bool | list[list[str]] = True,
                  on_change: Handler[ValueChangeEventArguments] | None = None) -> None:
-        """Create a collaborative rich-text editor."""
+        """Create a collaborative Tiptap rich-text editor."""
         self._doc_id = doc_id if doc_id is not None else str(uuid.uuid4())
         super().__init__(value=value, on_value_change=None)
         self.add_resource(Path(__file__).parent / 'dist')
@@ -76,16 +76,17 @@ class RichTextEditor(ValueElement, DisableableElement, component='rich_text_edit
 
         :raises ImportError: if ``y-py`` is not installed (``pip install y-py``).
         """  # noqa: DOC201
-        return rich_text_editor_room.get_state(self._doc_id)
+        return tiptap_room.get_state(self._doc_id)
 
     def set_state(self, data: bytes) -> None:
         """Restore a previously persisted Yjs binary state.
 
-        The update is CRDT-merged into the in-memory document and immediately
-        broadcast to all clients that are currently in the room.
+        The document is replaced (not merged) so deleted content is fully
+        recoverable.  All connected clients receive a reset event and recreate
+        their local Yjs document from the snapshot.
 
         :param data: raw Yjs state bytes as returned by ``get_state()``.
         :raises ImportError: if ``y-py`` is not installed
             (``pip install y-py``).
         """
-        rich_text_editor_room.set_state(self._doc_id, data)
+        tiptap_room.set_state(self._doc_id, data)

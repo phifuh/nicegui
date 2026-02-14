@@ -1,5 +1,5 @@
 {
-  "name": "nicegui-rich-text-editor-bundle",
+  "name": "nicegui-tiptap-bundle",
   "version": "1.0.0",
   "description": "Tiptap + Yjs collaborative editor bundling for NiceGUI",
   "private": true,

@@ -2,9 +2,9 @@ from nicegui import ui
 
 from . import doc
 
-@doc.demo(ui.rich_text_editor)
+@doc.demo(ui.tiptap)
 def main_demo() -> None:
-    ui.rich_text_editor('<p>Hello, <strong>world!</strong></p>').classes('h-full w-full border')
+    ui.tiptap('<p>Hello, <strong>world!</strong></p>').classes('h-full w-full border')
 
 
 @doc.demo('Custom toolbar', '''
@@ -13,7 +13,7 @@ they are grouped (each inner list becomes a button group with a separator).
 Use ``toolbar=False`` to hide the toolbar entirely.
 ''')
 def toolbar_demo() -> None:
-    ui.rich_text_editor('<p>Minimal toolbar</p>', toolbar=[
+    ui.tiptap('<p>Minimal toolbar</p>', toolbar=[
         ['bold', 'italic', 'underline'],
         ['bullet_list', 'ordered_list'],
         ['undo', 'redo'],
@@ -35,7 +35,7 @@ The editor below shows all of them at once.
 **History** — ``undo``, ``redo``
 ''')
 def all_buttons_demo() -> None:
-    ui.rich_text_editor('<p>Try every button above.</p>', toolbar=[
+    ui.tiptap('<p>Try every button above.</p>', toolbar=[
         ['bold', 'italic', 'underline', 'strike', 'code'],
         ['heading', 'h1', 'h2', 'h3'],
         ['bullet_list', 'ordered_list'],
@@ -55,7 +55,7 @@ Tab / Shift-Tab navigates between cells; cell content supports all inline
 formatting (bold, italic, etc.).
 ''')
 def table_demo() -> None:
-    ui.rich_text_editor(
+    ui.tiptap(
         '<table>'
         '<thead><tr><th>Name</th><th>Role</th><th>Status</th></tr></thead>'
         '<tbody>'
@@ -63,7 +63,7 @@ def table_demo() -> None:
         '<tr><td>Bob</td><td>Designer</td><td>On leave</td></tr>'
         '</tbody>'
         '</table>',
-        toolbar=[['bold', 'italic'], ['table'], ['undo', 'redo']], 
+        toolbar=[['bold', 'italic'], ['table'], ['undo', 'redo']],
         doc_id='shared-table'
     ).classes('h-full w-full border')
 
@@ -75,7 +75,7 @@ Open this demo in two browser tabs to see collaboration in action.
 ''')
 def collab_demo() -> None:
     ui.label('Open a second tab and start typing, changes appear instantly.').classes('text-sm text-gray-500')
-    ui.rich_text_editor("", doc_id='shared-room', ).classes('h-full w-full border')
+    ui.tiptap("", doc_id='shared-room').classes('h-full w-full border')
 
 
 @doc.demo('Named users with colored cursors', '''
@@ -84,7 +84,7 @@ cursor positions and names inside the editor.
 ''')
 def user_demo() -> None:
     def join_room(name: str, color: str) -> None:
-        ui.rich_text_editor("", doc_id='named-room', user={'name': name, 'color': color}).classes('h-full w-full border')
+        ui.tiptap("", doc_id='named-room', user={'name': name, 'color': color}).classes('h-full w-full border')
 
     with ui.row():
         name = ui.input("Input your name", value="")
@@ -100,7 +100,7 @@ state to all connected clients.
 ''')
 def persistence_demo() -> None:
     saved: dict = {}
-    editor = ui.rich_text_editor('<p>Editable content</p>', doc_id='persist-demo').classes('h-full w-full border')
+    editor = ui.tiptap('<p>Editable content</p>', doc_id='persist-demo').classes('h-full w-full border')
 
     def save():
         saved['data'] = editor.get_state()
@@ -156,7 +156,7 @@ def multi_user_persistence_demo() -> None:
         )
         status.set_text('Unsaved changes…')
 
-    editor = ui.rich_text_editor(
+    editor = ui.tiptap(
         '<p>Edit here — auto-saved 2 s after you stop typing.</p>',
         doc_id='persist-multi',
         on_change=on_change,
@@ -173,4 +173,4 @@ def multi_user_persistence_demo() -> None:
     ui.button('Restore last save', on_click=restore)
 
 
-doc.reference(ui.rich_text_editor)
+doc.reference(ui.tiptap)

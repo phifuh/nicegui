@@ -1,3 +1,3 @@
-from .rich_text_editor import RichTextEditor
+from .tiptap import Tiptap
 
-__all__ = ['RichTextEditor']
+__all__ = ['Tiptap']
