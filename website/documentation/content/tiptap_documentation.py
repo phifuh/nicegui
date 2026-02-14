@@ -45,7 +45,17 @@ def all_buttons_demo() -> None:
     ]).classes('h-full w-full border')
 
 
-@doc.demo('Tables', '''
+@doc.demo('Collaborative editing', '''
+Two or more clients sharing the same ``doc_id`` edit the same document
+in real time without any external server.
+Open this demo in two browser tabs to see collaboration in action.
+''')
+def collab_demo() -> None:
+    ui.label('Open a second tab and start typing, changes appear instantly.').classes('text-sm text-gray-500')
+    ui.tiptap('', doc_id='shared-room').classes('h-full w-full border')
+
+
+@doc.demo('Collaborative tables', '''
 The editor supports multi-column tables with a header row out of the box.
 Use the ``table`` toolbar button to insert a new 3×3 table, or supply
 initial HTML with a ``<table>`` element.
@@ -66,16 +76,6 @@ def table_demo() -> None:
         toolbar=[['bold', 'italic'], ['table'], ['undo', 'redo']],
         doc_id='shared-table'
     ).classes('h-full w-full border')
-
-
-@doc.demo('Collaborative editing', '''
-Two or more clients sharing the same ``doc_id`` edit the same document
-in real time without any external server.
-Open this demo in two browser tabs to see collaboration in action.
-''')
-def collab_demo() -> None:
-    ui.label('Open a second tab and start typing, changes appear instantly.').classes('text-sm text-gray-500')
-    ui.tiptap('', doc_id='shared-room').classes('h-full w-full border')
 
 
 @doc.demo('Named users with colored cursors', '''
