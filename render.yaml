@@ -2,6 +2,7 @@ services:
   - type: web
     name: rte-demo
     env: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: STORAGE_SECRET
         generateValue: true
