@@ -20,6 +20,31 @@ def toolbar_demo() -> None:
     ]).classes('h-full w-full border')
 
 
+@doc.demo('Available toolbar buttons', '''
+Every button has a string ID that you use when building a custom toolbar.
+The editor below shows all of them at once.
+
+**Inline formatting** — ``bold``, ``italic``, ``underline``, ``strike``, ``code``
+
+**Headings** — ``heading`` (dropdown: Normal / H1 / H2 / H3), or individual buttons ``h1``, ``h2``, ``h3``
+
+**Lists** — ``bullet_list``, ``ordered_list``
+
+**Blocks** — ``blockquote``, ``code_block``, ``table``, ``hr``
+
+**History** — ``undo``, ``redo``
+''')
+def all_buttons_demo() -> None:
+    ui.rich_text_editor('<p>Try every button above.</p>', toolbar=[
+        ['bold', 'italic', 'underline', 'strike', 'code'],
+        ['heading', 'h1', 'h2', 'h3'],
+        ['bullet_list', 'ordered_list'],
+        ['blockquote', 'code_block'],
+        ['table', 'hr'],
+        ['undo', 'redo'],
+    ]).classes('h-full w-full border')
+
+
 @doc.demo('Tables', '''
 The editor supports multi-column tables with a header row out of the box.
 Use the ``table`` toolbar button to insert a new 3×3 table, or supply
