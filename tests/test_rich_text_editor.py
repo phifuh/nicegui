@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from nicegui import ui
@@ -162,6 +164,69 @@ def test_value_prop_name():
     """VALUE_PROP and LOOPBACK are set correctly on the class."""
     assert ui.rich_text_editor.VALUE_PROP == 'value'
     assert ui.rich_text_editor.LOOPBACK is None
+
+
+def test_shared_doc_id_returns_identical_state():
+    """Two editors with the same doc_id read from the same server-side Yjs room."""
+    pytest.importorskip('y_py')
+
+    doc_id = f'shared-{id(object())}'
+    with ui.row():
+        editor1 = ui.rich_text_editor(doc_id=doc_id)
+        editor2 = ui.rich_text_editor(doc_id=doc_id)
+
+    assert editor1.doc_id == editor2.doc_id == doc_id
+    assert editor1.get_state() == editor2.get_state()
+
+
+def test_table_html_renders(screen: Screen):
+    """An editor initialised with table HTML shows the cell content in the DOM."""
+    @ui.page('/')
+    def page():
+        ui.rich_text_editor(
+            '<table><thead><tr><th>Name</th><th>Role</th></tr></thead>'
+            '<tbody><tr><td>Alice</td><td>Engineer</td></tr></tbody></table>',
+        )
+
+    screen.open('/')
+    screen.should_contain('Name')
+    screen.should_contain('Alice')
+    screen.should_contain('Engineer')
+
+
+def test_css_file_exists():
+    """The dist/rich_text_editor.css file must exist next to the element source."""
+    import nicegui.elements.rich_text_editor.rich_text_editor as rte_module
+    css = Path(rte_module.__file__).parent / 'dist' / 'rich_text_editor.css'
+    assert css.is_file(), f'CSS file missing: {css}'
+
+
+def test_css_contains_collaboration_cursor_styles():
+    """The CSS file must include the collaboration cursor rules that display other users' names."""
+    import nicegui.elements.rich_text_editor.rich_text_editor as rte_module
+    css = Path(rte_module.__file__).parent / 'dist' / 'rich_text_editor.css'
+    content = css.read_text()
+    assert 'collaboration-cursor__label' in content
+    assert 'collaboration-cursor__caret' in content
+
+
+def test_resource_path_prop_is_set():
+    """add_resource() must set the resource-path prop so the Vue component can load the CSS."""
+    with ui.row():
+        editor = ui.rich_text_editor()
+    assert 'resource-path' in editor._props, 'resource-path prop missing — add_resource() not called?'
+
+
+def test_event_args_to_value_non_string():
+    """_event_args_to_value returns an empty string for non-string event args."""
+    from nicegui.events import GenericEventArguments
+
+    with ui.row():
+        editor = ui.rich_text_editor()
+
+    for bad_arg in (None, 42, {}, []):
+        e = GenericEventArguments(sender=editor, client=None, args=bad_arg)
+        assert editor._event_args_to_value(e) == ''
 
 
 def test_on_change_callback(screen: Screen):
