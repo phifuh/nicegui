@@ -8,6 +8,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
+from typing import TYPE_CHECKING
+
+from . import background_tasks, core
+
+if TYPE_CHECKING:
+    from y_py import YDoc
 
 try:
     import y_py as Y
@@ -17,12 +24,10 @@ try:
 except ImportError:
     HAS_Y_PY = False
 
-from . import background_tasks, core
-
 _log = logging.getLogger(__name__)
 
 # Process-lifetime stores — access is always from the asyncio event loop.
-_docs: dict[str, object] = {}      # doc_id → Y.YDoc
+_docs: dict[str, YDoc] = {}        # doc_id → Y.YDoc
 _rooms: dict[str, set[str]] = {}   # doc_id → set of socket-IDs
 
 
@@ -34,7 +39,7 @@ def _require_y_py() -> None:
         )
 
 
-def _get_or_create_doc(doc_id: str) -> object:
+def _get_or_create_doc(doc_id: str) -> YDoc:
     _require_y_py()
     if doc_id not in _docs:
         _docs[doc_id] = Y.YDoc()
