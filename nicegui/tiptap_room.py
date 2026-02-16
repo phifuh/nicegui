@@ -156,3 +156,19 @@ def setup() -> None:
         payload = {'doc_id': doc_id, 'awareness': awareness}
         others = [s for s in _rooms.get(doc_id, set()) if s != sid]
         await asyncio.gather(*(core.sio.emit('yjs_awareness', payload, to=s) for s in others))
+
+
+
+def _clear_doc(doc_id: str) -> None:
+    _docs.pop(doc_id, None)
+
+
+def shutdown() -> None:
+    """Clean up all YDocs."""
+    _docs.clear()
+
+
+def reset() -> None:
+    """Clear all YDocs and rooms. Called during test teardown."""
+    _docs.clear()
+    _rooms.clear()

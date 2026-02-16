@@ -210,7 +210,8 @@ async def test_single_persistence_state_preserved(user: User) -> None:
 
     # Release YDocs on this thread to avoid y-py "unsendable" Rust panic on GC.
     del ref_doc
-    tiptap_room._docs.pop(doc_id, None)
+    tiptap_room._clear_doc(doc_id)
+    del ymap, doc
 
 
 async def test_debounce_unsaved_edits_excluded_from_restore(user: User) -> None:
@@ -259,7 +260,8 @@ async def test_debounce_unsaved_edits_excluded_from_restore(user: User) -> None:
 
     # Release YDocs on this thread to avoid y-py "unsendable" Rust panic on GC.
     del ref_doc
-    tiptap_room._docs.pop(doc_id, None)
+    tiptap_room._clear_doc(doc_id)
+    del ymap, doc
 
 
 def test_remove_sid_cleans_rooms():
