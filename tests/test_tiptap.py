@@ -365,15 +365,15 @@ def test_table_html_renders(screen: Screen):
 
 def test_css_file_exists():
     """The dist/tiptap.css file must exist next to the element source."""
-    import nicegui.elements.tiptap.tiptap as rte_module
-    css = Path(rte_module.__file__).parent / 'dist' / 'tiptap.css'
+    import nicegui.elements.tiptap.tiptap as tiptap_module
+    css = Path(tiptap_module.__file__).parent / 'dist' / 'tiptap.css'
     assert css.is_file(), f'CSS file missing: {css}'
 
 
 def test_css_contains_collaboration_cursor_styles():
     """The CSS file must include the collaboration cursor rules that display other users' names."""
-    import nicegui.elements.tiptap.tiptap as rte_module
-    css = Path(rte_module.__file__).parent / 'dist' / 'tiptap.css'
+    import nicegui.elements.tiptap.tiptap as tiptap_module
+    css = Path(tiptap_module.__file__).parent / 'dist' / 'tiptap.css'
     content = css.read_text()
     assert 'collaboration-cursor__label' in content
     assert 'collaboration-cursor__caret' in content
